@@ -1,0 +1,80 @@
+=====================================================
+HASIL PEMERIKSAAN REPO — APA YANG SALAH & CARA MEMPERBAIKI
+=====================================================
+
+HASIL CEK REPO (jumadiantholine/evaluasibilling, branch main):
+[V] src/app/page.tsx        — versi BARU sudah ada (ada "Pilih ULP")
+[V] src/app/layout.tsx      — versi BARU sudah ada (judul "CEK DPM · Evaluasi Billing")
+[V] src/app/api/upload-center/route.ts — sudah ada
+[V] public/templates/ 3 file template Excel — sudah ada
+[V] sql/supabase-dpm-uploads.sql — sudah ada
+[V] package.json sudah memuat "xlsx"
+
+MASALAH SATU-SATUNYA YANG DITEMUKAN:
+[X] package.json TIDAK memuat library "@supabase/supabase-js",
+    padahal file src/app/api/upload-center/route.ts baris 3 memanggilnya.
+    Akibatnya: BUILD DI VERCEL SELALU GAGAL -> Vercel tetap menayangkan
+    deploy versi LAMA yang terakhir sukses. Itulah sebabnya web tidak
+    pernah berubah (bukan karena commit salah branch — kode di main
+    ternyata sudah benar semua).
+
+BUKTI YANG BISA ANDA LIHAT SENDIRI:
+- Buka Vercel -> project evaluasibilling -> tab "Deployments".
+  Entri paling atas akan terlihat status "Error"/"Failed" (merah),
+  sementara yang tayang adalah entri lama berstatus "Ready".
+- Error di build log: "Module not found: Can't resolve '@supabase/supabase-js'"
+
+=====================================================
+CARA MEMPERBAIKI — PILIH SALAH SATU CARA (A PALING MUDAH)
+=====================================================
+
+CARA A — EDIT SATU BARIS LANGSUNG DI GITHUB (disarankan):
+1. Buka https://github.com/jumadiantholine/evaluasibilling
+2. Klik file "package.json" -> klik ikon pensil (Edit).
+3. Cari baris ini (sekitar baris 57):
+       "@reactuses/core": "^6.0.5",
+4. Tepat DI BAWAH baris itu, tambahkan baris baru:
+       "@supabase/supabase-js": "^2.45.4",
+   (perhatikan: ada tanda koma di akhir, dan spasi 4 di awal
+    supaya rapi seperti baris lain)
+5. Klik "Commit changes" -> pilih "Commit directly to the main branch".
+
+CARA B — TIMPA package.json DENGAN FILE JADI:
+1. Ekstrak paket ini, dapatkan file "package.json" (versi sudah benar).
+2. Di GitHub: tombol "Add file" -> "Upload files" -> drag file
+   package.json tersebut ke halaman root repo -> Commit changes.
+   GitHub akan otomatis menimpa file lama karena namanya sama.
+
+CARA C — CADANGAN (jika A/B masih gagal):
+Timpa src/app/api/upload-center/route.ts dengan file
+"route-tanpa-library.ts" dari paket ini (ganti namanya menjadi
+"route.ts" saat mengunggah). Versi ini tidak butuh library
+@supabase/supabase-js sama sekali, jadi tidak menyentuh package.json.
+
+=====================================================
+SETELAH COMMIT:
+=====================================================
+1. Tunggu 2-3 menit (Vercel build otomatis).
+2. Cek tab Deployments di Vercel -> entri teratas harus berstatus
+   "Ready" (bukan Error).
+3. Buka https://evaluasibilling.vercel.app lalu tekan Ctrl+Shift+R
+   (hard refresh). Ciri versi baru:
+   - Judul tab browser: "CEK DPM · Evaluasi Billing" (titik tengah)
+   - Ada hero biru dengan tulisan "Pilih ULP" dan pilihan BLTH
+   - Ada 3 kartu upload: MCR / PEC / SOREK
+4. PENTING agar upload berfungsi: jalankan SQL dari file
+   sql/supabase-dpm-uploads.sql di Supabase -> SQL Editor -> Run
+   (jika belum pernah dijalankan). Tanpa ini, upload akan menolak
+   dengan pesan "Tabel 'dpm_uploads' belum ada".
+5. Pastikan Environment Variables di Vercel sudah ada:
+   NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY (dan/atau
+   NEXT_PUBLIC_SUPABASE_ANON_KEY). Jika baru ditambahkan, lakukan
+   redeploy agar terbaca.
+
+CATATAN TAMBAHAN DARI PEMERIKSAAN:
+- Branch "master" di repo Anda isinya sama dengan "main" — tidak
+  masalah, Vercel memakai branch "main" (default).
+- File src/middleware.ts dan src/app/login TIDAK ada di repo —
+  benar, karena Anda memutuskan tanpa login.
+- File zip jangan pernah diunggah apa adanya ke GitHub; selalu
+  unggah file hasil ekstraknya.
