@@ -1,0 +1,173 @@
+// Prisma schema — CEK DPM Evaluasi Billing
+// Lokal (sandbox): SQLite via DATABASE_URL=file:...
+// Produksi (Vercel + Supabase): ganti provider menjadi "postgresql"
+// dan set DATABASE_URL ke connection string Supabase. Lihat README-DEPLOY.md
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite" // GANTI KE "postgresql" SAAT DEPLOY KE SUPABASE
+  url      = env("DATABASE_URL")
+}
+
+// Jenis upload: SOREK | MCR | PEC | AMR_INI | AMR_LALU
+model Upload {
+  id        String   @id @default(cuid())
+  jenis     String
+  blth      String // BLTH sesuai isi file
+  fileName  String
+  rowCount  Int      @default(0)
+  createdAt DateTime @default(now())
+
+  sorekRows SorekRow[]
+  dpmRows  DpmRow[]
+}
+
+// Baris SOREK (rekening bulan lalu): BLTH, IDPEL, TARIP, DAYA, JAMNYALA, PEMKWH
+model SorekRow {
+  id        String  @id @default(cuid())
+  uploadId  String
+  upload    Upload  @relation(fields: [uploadId], references: [id], onDelete: Cascade)
+  blth      String
+  idpel     String
+  tarif     String?
+  daya      Float   @default(0)
+  jamNyala  Float   @default(0)
+  pemKwh    Float   @default(0)
+
+  @@index([blth, idpel])
+}
+
+// Baris DPM (mcr.xls / pec mcr.xls / DPM AMR INI / DPM LALU)
+// source: MCR | PEC | AMR_INI | AMR_LALU
+model DpmRow {
+  id          String @id @default(cuid())
+  uploadId    String
+  upload      Upload @relation(fields: [uploadId], references: [id], onDelete: Cascade)
+  source      String
+  blth        String
+  idpel       String
+  nama        String?
+  unitup      String?
+  tarif       String?
+  daya        Float  @default(0)
+  fkmKwh      Float  @default(0)
+  fkmKvarh    Float  @default(0)
+  slalwbp     Float  @default(0)
+  lwbpCabut   Float  @default(0)
+  lwbpPasang  Float  @default(0)
+  sahlwbp     Float  @default(0)
+  lwbpPakai   Float  @default(0)
+  slawbp      Float  @default(0)
+  wbpCabut    Float  @default(0)
+  wbpPasang   Float  @default(0)
+  sahwbp      Float  @default(0)
+  wbpPakai     Float  @default(0)
+  kvarhCabut  Float  @default(0)
+  kvarhPasang Float  @default(0)
+  sahkvarh     Float @default(0)
+  kvarhPakai   Float @default(0)
+  slakvarh     Float @default(0)
+  thblmut     String?
+  dlpd        String?
+  dlpdLm      String?
+
+  @@index([blth, idpel])
+  @@index([uploadId])
+}
+
+// Satu kali jalannya evaluasi
+model EvalRun {
+  id         String   @id @default(cuid())
+  blth       String // BLTH DPM (bulan yang dievaluasi)
+  blthSorek  String?
+  mode       String // SINGLE | AMR
+  createdAt  DateTime @default(now())
+  stats      Json?
+  results    EvalResult[]
+
+  @@index([blth, mode])
+}
+
+// Hasil evaluasi per pelanggan (kolom mengikuti logika Excel CEK DPM)
+model EvalResult {
+  id        String @id @default(cuid())
+  runId     String
+  run       EvalRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+  idpel     String
+  nama      String?
+  unitup    String?
+  tarif     String?
+  daya      Float   @default(0)
+
+  // ==== kolom bersama (single & AMR) ====
+  kwh       Float? // SINGLE: LWBPPAKAI ; AMR: TOTAL KWH (LWBP+WBP)
+  kwhEmin   Float? // DAYA * 40 / 1000
+  kwhIni    Float? // kWh kena tagih = MAX(kwh, emin)
+  kwhLalu   Float? // PEMKWH dari SOREK
+  dayaLalu  Float?
+  jnLalu    Float?
+  jnReal    Float?
+  gap       Float? // kwhIni - kwhLalu (SINGLE); kwhReal - kwhSorek (AMR)
+  prosentase Float?
+  cekStan   String? // BENAR / TERBALIK
+  dlpd      String?
+  dlpdLm    String?
+  status    String @default("NORMAL")
+  source    String? // MCR / PEC / AMR_INI
+
+  // ==== khusus SINGLE (st meter) ====
+  stanLalu   Float?
+  stanCabut  Float?
+  stanPasang Float?
+  stanIni    Float?
+  cekPecahan String? // PD / GAMET / kosong
+  gapEmin    Float?
+  pdBongkarPasang Float?
+  cekStanPasang   String? // BENAR / SALAH
+  cekPecahanVsIni String? // BENAR / SALAH
+  foundSorek      Boolean @default(true)
+
+  // ==== khusus AMR / pelanggan besar ====
+  lwbpPakai   Float?
+  wbpPakai    Float?
+  kvarhPakai  Float?
+  batasKvarh  Float?
+  kelbKvarh   Float?
+  rasioKvarh  Float?
+  rpEmin      Float?
+  rpLwbp      Float?
+  rpWbp       Float?
+  rpTotalKwh  Float?
+  rpKvarh     Float?
+  rpTotalPak  Float?
+  rpRekening  Float?
+  buatBa      String? // BUAT BA / TIDAK
+  cekFx       String? // BENAR / SALAH
+  kwhLaluDpm  Float? // total kWh bulan lalu dari DPM LALU
+  kenaikan    Float?
+  cekDpmVsSorek Float?
+  cekStanWbp  String?
+  cekStanKvarh String?
+  cekLwbpVsWbp String?
+
+  @@index([runId, status])
+  @@index([runId, idpel])
+}
+
+// Tabel tarif RPKWH (Rp/kWh) sesuai sheet RPKWH
+model TariffRate {
+  tarif String @id
+  lwbp  Float
+  wbp   Float
+  kvarh Float
+  ppj   Float
+}
+
+// Master FX (DAYA -> faktor kali meter) sesuai sheet MASTER FX
+model MasterFx {
+  daya Float @id
+  fx   Float
+}
