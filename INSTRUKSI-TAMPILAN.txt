@@ -1,0 +1,62 @@
+================================================================
+PAKET TAMPILAN BARU - CEK DPM EVALUASI BILLING
+================================================================
+
+ISI PAKET: 1 file saja
+  src/app/layout.tsx  -> pembungkus tampilan SELURUH halaman web
+
+APA YANG BERUBAH SETELAH DIPASANG:
+  - Navbar modern melayang di atas saat scroll
+    (logo DPM + nama aplikasi + garis aksen biru-merah)
+  - Latar halus dengan kilau biru lembut di bagian atas
+  - Footer rapi di bagian bawah
+  - Judul tab browser menjadi "CEK DPM - Evaluasi Billing"
+  - SEMUA fitur upload & evaluasi TIDAK disentuh sama sekali
+    (file page.tsx dan API tetap utuh)
+
+PENTING SEBELUM MENIMPA:
+  1. Buka src/app/layout.tsx yang LAMA di GitHub.
+  2. Blok semua isinya > COPY > simpan sementara di notepad
+     (ini cadangan kalau ingin kembali).
+  3. Perhatikan: kalau ada <Toaster ... /> atau <Providers ...>
+     di layout lama, itu harus dipindahkan ke file baru
+     (lihat catatan di bawah).
+
+CARA PASANG (via browser GitHub, tanpa aplikasi tambahan):
+  1. Buka repo "evaluasibilling" di GitHub.
+  2. Masuk folder src > app > klik file layout.tsx.
+  3. Klik ikon pensil "Edit this file" di pojok kanan atas.
+  4. Hapus semua isi lama (Ctrl+A lalu Delete).
+  5. Buka file layout.tsx dari paket ini, salin SELURUH isinya,
+     tempel di GitHub.
+  6. Klik "Commit changes" (pesan: "tampilan baru layout").
+  7. Tunggu 2-3 menit sampai Vercel selesai deploy > refresh web.
+
+KALAU LAYOUT LAMA PUNYA TOASTER / PROVIDER:
+  Di dalam file baru sudah ada tanda komentar yang menunjukkan
+  tempat paste. Cari teks "KALAU layout LAMA Anda berisi".
+  Contoh hasil setelah dipindah:
+      <Toaster /> {children}
+  atau:
+      <Providers>{children}</Providers>
+  Pindahkan persis seperti aslinya, jangan dibuat baru.
+
+KALAU TERNYATA WEB JADI ERROR / BLANK SETELAH COMMIT:
+  Buka lagi src/app/layout.tsx > ikon pensil > tempel kembali isi
+  LAMA yang tadi disimpan di notepad > Commit changes.
+  Web kembali normal dalam 2-3 menit.
+
+KARENA LOGIN TIDAK DIPAKAI:
+  Kalau kemarin file src/middleware.ts sempat terpasang, hapus:
+  buka filenya > ikon pensil > hapus semua isi > Commit.
+  Web akan terbuka langsung tanpa halaman login.
+
+UJI SETELAH TERPASANG:
+  - Refresh web: navbar & footer baru muncul di semua halaman.
+  - Coba upload file seperti biasa: fitur tetap berjalan.
+
+MAU DESAIN LEBIH DALAM LAGI (halaman utama)?
+  Kirim isi file src/app/page.tsx ke chat (buka filenya di
+  GitHub > blok semua > copy > paste di chat). Nanti dibuatkan
+  desain halaman utama: kartu upload MCR / PEC / Sorek yang
+  serasi dengan navbar baru ini.
